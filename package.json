@@ -1,0 +1,22 @@
+{
+  "name": "jb_shop_api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "nodemon index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "cors": "^2.8.5",
+    "cryptr": "^4.0.2",
+    "dotenv": "^7.0.0",
+    "express": "^4.16.4",
+    "log-to-file": "^1.3.0",
+    "moment": "^2.24.0",
+    "mysql": "^2.16.0",
+    "nodemon": "^1.18.10"
+  }
+}
