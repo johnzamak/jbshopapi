@@ -8,85 +8,49 @@ const mysql = require('mysql')
 const sql_functions = {
     sql_select(dbConfig, nameTB = "", nameFN = "", sqlQuery = "") {
         return new Promise((resolve, reject) => {
-            mysql.close()
-            const pool = new mysql.ConnectionPool(dbConfig)
-            pool.connect(err => {
-                if (err) {
-                    save_log(pool, nameFN, nameTB, err)
-                    reject(response(500, "Error Connection", err))
-                }
-                var req = new mysql.Request(pool)
-                req.query(sqlQuery).then((result) => {
-                    console.log("sqlQuery", sqlQuery)
-                    pool.close()
-                    if (result.recordset.length > 0) {
+            const pool = mysql.createPool(dbConfig)
+            pool.getConnection((err, connection) => {
+                if (err) throw err
+                console.log("sqlQuery", sqlQuery)
+                connection.query(sqlQuery, (err, result) => {
+                    connection.release()
+                    pool.end()
+                    if (err) throw err
+                    if (result.length > 0) {
                         save_log(sqlQuery, nameFN, nameTB, result.recordset)
-                        resolve(response(200, "Success", result.recordset))
+                        resolve(public_functions.response(200, "Success", result.recordset))
                     } else {
                         save_log(sqlQuery, nameFN, nameTB, result.recordset)
-                        resolve(response(502, "Error Data", result))
+                        resolve(public_functions.response(502, "Error Data", result))
                     }
-                }).catch((err) => {
-                    pool.close()
-                    if (err) {
-                        save_log(sqlQuery, nameFN, nameTB, err)
-                        reject(response(501, "Error Query", err))
-                    }
-                });
+                })
             })
         })
     },
     sql_insert(dbConfig, nameTB = "", nameFN = "", sqlQuery = "") {
         return new Promise((resolve, reject) => {
-            mysql.close()
-            const pool = new mysql.ConnectionPool(dbConfig)
-            pool.connect(err => {
-                if (err) {
-                    save_log(pool, nameFN, nameTB, err)
-                    reject(response(500, "Error Connection", err))
-                }
-                const transaction = new mysql.Transaction(pool)
-                transaction.begin(err => {
-                    if (err) {
-                        save_log(transaction, nameFN, nameTB, err)
-                        reject(response(500, "Connection is close", err))
-                    }
-                    let rolledBack = false
-                    transaction.on("rollback", aborted => {
-                        rolledBack = true
-                    })
-                    var req = new mysql.Request(transaction)
-                    // console.log("sqlQuery",sqlQuery)
-                    req.query(sqlQuery).then((result, err) => {
+            const pool = mysql.createPool(dbConfig)
+            pool.getConnection((err, connection) => {
+                if (err) throw err
+                connection.beginTransaction((err) => {
+                    if (err) throw err
+                    console.log("sqlQuery", sqlQuery);
+                    connection.query(sqlQuery, (err, result) => {
                         if (err) {
-                            if (!rolledBack) {
-                                transaction.rollback(err => {
-                                    pool.close()
-                                    if (err) {
-                                        save_log(transaction, nameFN, nameTB, err)
-                                        reject(response(501, "Error query SQL No Rollback", err))
-                                    }
-                                    save_log(transaction, nameFN, nameTB, err)
-                                    reject(response(502, "Error query SQL to Rollback", err))
-                                })
-                            }
-                        } else {
-                            transaction.commit(err => {
-                                pool.close()
-                                if (err) {
-                                    save_log(transaction, nameFN, nameTB, err)
-                                    reject(response(503, "Error query SQL No Commit", err))
-                                }
-                                save_log(transaction, nameFN, nameTB, result.recordset)
-                                resolve(response(200, "Success", result.recordset))
+                            return connection.rollback(() => {
+                                throw err
                             })
                         }
-                    }).catch((err) => {
-                        if (err) {
-                            save_log(err, nameFN, nameTB, err)
-                            reject(response(504, "Error query SQL", err))
-                        }
-                    });
+                        connection.commit((err) => {
+                            if (err) {
+                                return connection.rollback(() => {
+                                    throw err
+                                })
+                            }
+                            save_log(sqlQuery, nameFN, nameTB, result.recordset)
+                            resolve(public_functions.response(200, "Success", result.recordset))
+                        })
+                    })
                 })
             })
         })
@@ -98,8 +62,11 @@ const save_log = (res_data, type, tbl_name, input_data) => {
     //-----2. type = ประเภทของการทำงาน เช่น Insert, Select, Update
     //-----3. tbl_name = ชื่อของตารางที่เกี่ยวข้อง
     //-----4. input_data = ข้อมูลที่นำเข้ามา
-
-    Check_Log_file("log-server.txt")
+    fs.readFile("log-server.txt", function (err, data) {
+        console.log("err", err, data);
+        if (err) return false
+    })
+    // Check_Log_file("log-server.txt")
 
     if (Array.isArray(res_data)) {
         res_data.forEach((val, index) => {
@@ -206,7 +173,7 @@ const public_functions = {
             case 503: return { status: 503, message: "Service Unavailable", dev_msg: dev_msg, result: data }
             case 504: return { status: 504, message: "Gateway Timeout", dev_msg: dev_msg, result: data }
         }
-    }
+    },
 }
 
 module.exports = {

@@ -60,55 +60,13 @@ const model = {
         var res_select = await sqlQuery.sql_select(connMyDB, nameTB, nameFN, sql_select)
         callback(res_select)
     },
-    async find_all_item(callback) {
+    async find_all_item(callback){
         nameFN = "find_all"
         nameTB = "item_master"
         sql_select = "SELECT *,`id`+`barcode`+`item_name` as search FROM `item_master`"
-        var res_item = await sqlQuery.sql_select(connMyDB, nameTB, nameFN, sql_select)
-        callback(res_item)
-    },
-    async report_sale_order(stDate, enDate, callback) {
-        nameFN = "report_sale_order"
-        nameTB = "item_transaction"
-        sql_select = "SELECT item_id,item_name,SUM(item_qty) AS item_qty,item_price,SUM(discount) AS discount,SUM(price) AS price \
-        ,item_unit,barcode,CONVERT(create_date,char(10)) AS create_date \
-        FROM item_transaction \
-        WHERE create_date BETWEEN '" + stDate + "' AND '" + enDate + "' \
-        GROUP BY item_id,item_name,SUM(item_qty),item_price,SUM(discount),SUM(price) \
-        ,item_unit,barcode,CONVERT(create_date,char(10)) "
         var res_select = await sqlQuery.sql_select(connMyDB, nameTB, nameFN, sql_select)
         callback(res_select)
     },
-    async find_SO_by_item(inItem, callback) {
-        nameFN = "find_SO_by_item"
-        nameTB = "item_transaction"
-        sql_select = "SELECT * \
-        FROM item_transaction \
-        WHERE item_id LIKE '"+ inItem + "' "
-        var res_select = await sqlQuery.sql_select(connMyDB, nameTB, nameFN, sql_select)
-        callback(res_select)
-    },
-    async report_purchase(stDate, enDate, callback) {
-        nameFN = "report_purchase"
-        nameTB = "item_purchase"
-        sql_select = "SELECT item_id,item_name,SUM(item_qty) AS item_qty,item_price,SUM(discount) AS discount,SUM(price) AS price \
-        ,item_unit,barcode,CONVERT(create_date,char(10)) AS create_date \
-        FROM item_purchase \
-        WHERE create_date BETWEEN '" + stDate + "' AND '" + enDate + "' \
-        GROUP BY item_name,SUM(item_qty),item_price,SUM(discount),SUM(price) \
-        ,item_unit,barcode,item_id,CONVERT(create_date,char(10)) "
-        var res_select = await sqlQuery.sql_select(connMyDB, nameTB, nameFN, sql_select)
-        callback(res_select)
-    },
-    async find_PO_by_item(inItem, callback) {
-        nameFN = "find_PO_by_item"
-        nameTB = "item_purchase"
-        sql_select = "SELECT * \
-        FROM item_purchase \
-        WHERE item_id LIKE '"+ inItem + "' "
-        var res_select = await sqlQuery.sql_select(connMyDB, nameTB, nameFN, sql_select)
-        callback(res_select)
-    }
 }
 module.exports = {
     model: model
